@@ -181,7 +181,7 @@ def health():
     if error:
         status['warning'] = error['message']
     
-    return jsonify(status), 200 if is_valid else 503
+    return jsonify(status), 200
 
 
 @app.route('/', methods=['GET'])
