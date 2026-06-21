@@ -132,7 +132,7 @@ def format_weather_response(data: Dict[str, Any]) -> Dict[str, Any]:
                 'icon': data.get('weather', [{}])[0].get('icon')
             },
             'temperature': {
-                'current': round(data.get('main', {}).get('temp', 0), 2),  # Convertir de Kelvin a Celsius
+                'current': round(data.get('main', {}).get('temp', 0), 2), 
                 'feels_like': round(data.get('main', {}).get('feels_like', 0), 2),
                 'min': round(data.get('main', {}).get('temp_min', 0), 2),
                 'max': round(data.get('main', {}).get('temp_max', 0), 2)
