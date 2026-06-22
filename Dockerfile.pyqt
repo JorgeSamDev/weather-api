@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    libxcb-cursor0 \
+    libxcb1 \
+    libx11-6 \
+    libxext6 \
+    libxrender1 \
+    libegl1 \
+    libwayland-client0 \
+    libwayland-egl1 \
+    libxkbcommon0 \
+    libfontconfig1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.pyqt.txt .
+RUN pip install --no-cache-dir --timeout=120 -r requirements.pyqt.txt
+
+COPY clima_app.py .
+
+CMD ["python", "clima_app.py"]

@@ -1,0 +1,11 @@
+services:
+  flask-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clima-api
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: unless-stopped

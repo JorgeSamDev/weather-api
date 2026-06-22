@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clima EM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b1120;
+      --card:      #111827;
+      --border:    #1f2d3d;
+      --accent:    #3b82f6;
+      --accent2:   #60a5fa;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --subtle:    #1e293b;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 60px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    /* ── SEARCH ── */
+    .search-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 12px;
+    }
+
+    input#city {
+      flex: 1;
+      background: var(--subtle);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input#city:focus { border-color: var(--accent); }
+    input#city::placeholder { color: var(--muted); }
+
+    button#btn {
+      background: var(--accent);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 22px;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      white-space: nowrap;
+    }
+    button#btn:hover { background: #2563eb; }
+    button#btn:active { transform: scale(.97); }
+    button#btn:disabled { background: #1e3a5f; color: var(--muted); cursor: not-allowed; }
+
+    .error {
+      color: #f87171;
+      font-size: 0.82rem;
+      min-height: 18px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    /* ── CARD ── */
+    .card {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .card-info {
+      padding: 24px 28px 20px;
+    }
+
+    .city-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 2px;
+    }
+
+    .temp {
+      font-size: 3.5rem;
+      font-weight: 300;
+      color: var(--accent2);
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .desc {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-top: 4px;
+      margin-bottom: 20px;
+      text-transform: capitalize;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .stat {
+      text-align: center;
+      padding: 0 8px;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+
+    .stat-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── SCENE ── */
+    .scene-wrap {
+      position: relative;
+      width: 100%;
+      height: 240px;
+      overflow: hidden;
+    }
+
+    canvas#scene {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* ── PLACEHOLDER ── */
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 240px;
+      color: var(--muted);
+      gap: 8px;
+    }
+    .placeholder svg { opacity: .3; }
+    .placeholder p { font-size: 0.82rem; }
+
+    .hint {
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: .5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Clima EM</h1>
+  <p class="subtitle">WEATHER EXPLORER</p>
+
+  <div class="search-row">
+    <input id="city" type="text" placeholder="Ciudad... ej: Tokyo, Ciudad de México, London"/>
+    <button id="btn" onclick="fetchWeather()">Escanear Clima</button>
+  </div>
+  <div class="error" id="error"></div>
+
+  <div class="card">
+    <div class="card-info">
+      <div class="city-name" id="city-name">—</div>
+      <div class="temp" id="temp">—</div>
+      <div class="desc" id="desc">Ingresa una ciudad para comenzar</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Humedad</div>
+          <div class="stat-value" id="s-humidity">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Viento</div>
+          <div class="stat-value" id="s-wind">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Presión</div>
+          <div class="stat-value" id="s-pressure">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Sensación</div>
+          <div class="stat-value" id="s-feels">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ilustración -->
+    <div class="scene-wrap">
+      <div class="placeholder" id="placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          <circle cx="12" cy="12" r="5"/>
+        </svg>
+        <p>La ilustración aparecerá aquí</p>
+      </div>
+      <canvas id="scene" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <p class="hint">La ilustración cambia dinámicamente según el clima detectado</p>
+
+<script>
+// ─── FETCH ───────────────────────────────────────────────
+const cityInput = document.getElementById('city');
+cityInput.addEventListener('keydown', e => { if (e.key === 'Enter') fetchWeather(); });
+
+async function fetchWeather() {
+  const city = cityInput.value.trim();
+  if (!city) return;
+  const btn = document.getElementById('btn');
+  const errEl = document.getElementById('error');
+  btn.disabled = true;
+  btn.textContent = '...';
+  errEl.textContent = '';
+
+  try {
+    const res = await fetch(`/weather?city=${encodeURIComponent(city)}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Ciudad no encontrada');
+    const d = json.data;
+    document.getElementById('city-name').textContent = `${d.city}, ${d.country}`;
+    document.getElementById('temp').textContent = `${d.temperature.current.toFixed(1)}°C`;
+    document.getElementById('desc').textContent = d.weather.description;
+    document.getElementById('s-humidity').textContent = `${d.atmospheric.humidity}%`;
+    document.getElementById('s-wind').textContent = `${d.wind.speed} m/s`;
+    document.getElementById('s-pressure').textContent = `${d.atmospheric.pressure} hPa`;
+    document.getElementById('s-feels').textContent = `${d.temperature.feels_like.toFixed(1)}°C`;
+    startScene(d.weather.main);
+  } catch(e) {
+    errEl.textContent = '⚠ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Escanear Clima';
+  }
+}
+
+// ─── SCENE ENGINE ────────────────────────────────────────
+let animId = null;
+let tick = 0;
+let drops = [], flakes = [], clouds = [], currentScene = '';
+
+const PALETTES = {
+  clear:       { skyTop:'#1a6dbd', skyBot:'#f7c948', ground:'#3d8c40' },
+  cloudy:      { skyTop:'#607d8b', skyBot:'#b0bec5', ground:'#5a7a5a' },
+  rain:        { skyTop:'#263238', skyBot:'#546e7a', ground:'#37474f' },
+  drizzle:     { skyTop:'#37474f', skyBot:'#78909c', ground:'#455a64' },
+  thunderstorm:{ skyTop:'#1a1a2e', skyBot:'#3a3a5c', ground:'#2d3436' },
+  snow:        { skyTop:'#b0bec5', skyBot:'#eceff1', ground:'#e0e0e0' },
+  fog:         { skyTop:'#9e9e9e', skyBot:'#eeeeee', ground:'#bdbdbd' },
+  haze:        { skyTop:'#8d6e63', skyBot:'#d7a97a', ground:'#795548' },
+};
+
+function conditionToScene(c) {
+  c = c.toLowerCase();
+  if (c.includes('thunderstorm')) return 'thunderstorm';
+  if (c.includes('drizzle'))      return 'drizzle';
+  if (c.includes('rain'))         return 'rain';
+  if (c.includes('snow'))         return 'snow';
+  if (c.includes('mist') || c.includes('fog')) return 'fog';
+  if (c.includes('haze') || c.includes('smoke') || c.includes('sand')) return 'haze';
+  if (c.includes('clear'))        return 'clear';
+  return 'cloudy';
+}
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+function startScene(condition) {
+  document.getElementById('placeholder').style.display = 'none';
+  const canvas = document.getElementById('scene');
+  canvas.style.display = 'block';
+
+  currentScene = conditionToScene(condition);
+
+  // Init particles
+  drops  = Array.from({length:120}, () => [rand(0,1), rand(0,1), rand(0.015,0.03)]);
+  flakes = Array.from({length:80},  () => [rand(0,1), rand(0,1), rand(4,10), rand(0.003,0.008)]);
+  clouds = Array.from({length:5},   () => [rand(-0.2,1.2), rand(0.05,0.35), rand(0.5,1.2), rand(0.0000000000001,0.0000000000002)]);
+
+  if (animId) cancelAnimationFrame(animId);
+  tick = 0;
+  loop(canvas);
+}
+
+let cloudTick = 0;
+function loop(canvas) {
+  tick++;
+  cloudTick++;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  canvas.width  = W;
+  canvas.height = H;
+  const horizon = H * 0.68;
+
+  // Animate particles
+  drops  = drops.map(([x,y,s]) => [x, (y+s)%1, s]);
+  flakes = flakes.map(([x,y,r,s]) => [(x + Math.sin(y*10+tick*0.05)*0.003+1)%1, (y+s)%1, r, s]);
+  );
+  }
+
+  drawSky(ctx, W, H, horizon);
+  drawElements(ctx, W, H, horizon);
+  drawGround(ctx, W, H, horizon);
+
+  animId = requestAnimationFrame(() => loop(canvas));
+}
+
+// ─── DRAW HELPERS ────────────────────────────────────────
+function hex(h) { return h; }
+
+function drawSky(ctx, W, H, horizon) {
+  const pal = PALETTES[currentScene] || PALETTES.cloudy;
+  const g = ctx.createLinearGradient(0, 0, 0, horizon);
+  g.addColorStop(0, pal.skyTop);
+  g.addColorStop(1, pal.skyBot);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, horizon);
+}
+
+function drawGround(ctx, W, H, horizon) {
+  const pal = PALETTES[currentScene] || PALETTES.cloudy;
+  const g = ctx.createLinearGradient(0, horizon, 0, H);
+  g.addColorStop(0, lighten(pal.ground, 20));
+  g.addColorStop(1, darken(pal.ground, 20));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, horizon, W, H - horizon);
+}
+
+function drawElements(ctx, W, H, horizon) {
+  const s = currentScene;
+  if (s === 'clear') {
+    drawSun(ctx, W, horizon, false);
+    drawClouds(ctx, W, horizon, 50, false);
+    drawTrees(ctx, W, horizon, false);
+  } else if (s === 'cloudy') {
+    drawSun(ctx, W, horizon, true);
+    drawClouds(ctx, W, horizon, 210, false);
+    drawTrees(ctx, W, horizon, false);
+  } else if (s === 'rain' || s === 'drizzle') {
+    drawClouds(ctx, W, horizon, 230, true);
+    drawRain(ctx, W, horizon, s === 'drizzle' ? 0.5 : 1.0);
+    drawTrees(ctx, W, horizon, true);
+  } else if (s === 'thunderstorm') {
+    drawClouds(ctx, W, horizon, 250, true);
+    drawRain(ctx, W, horizon, 1.0);
+    if (tick % 80 < 6) drawLightning(ctx, W, horizon);
+    drawTrees(ctx, W, horizon, true);
+  } else if (s === 'snow') {
+    drawSun(ctx, W, horizon, true);
+    drawClouds(ctx, W, horizon, 170, false);
+    drawSnow(ctx, W, horizon);
+    drawTrees(ctx, W, horizon, false);
+    drawSnowCaps(ctx, W, horizon);
+  } else if (s === 'fog') {
+    drawTrees(ctx, W, horizon, false);
+    drawFog(ctx, W, horizon);
+  } else if (s === 'haze') {
+    drawSun(ctx, W, horizon, true, true);
+    drawTrees(ctx, W, horizon, false);
+  }
+}
+
+function drawSun(ctx, W, horizon, dim, haze=false) {
+  const cx = W * 0.78, cy = horizon * 0.28, r = Math.min(W, horizon) * 0.1;
+  const alpha = haze ? 0.65 : dim ? 0.8 : 1;
+  const col = haze ? `rgba(255,140,40,${alpha})` : `rgba(255,215,0,${alpha})`;
+
+  if (!haze) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,215,0,${dim?0.3:0.5})`;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 12; i++) {
+      const a = (i * 30 + tick * 0.3) * Math.PI / 180;
+      ctx.beginPath();
+      ctx.moveTo(cx + (r+6)*Math.cos(a), cy + (r+6)*Math.sin(a));
+      ctx.lineTo(cx + (r+18)*Math.cos(a), cy + (r+18)*Math.sin(a));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, col);
+  g.addColorStop(1, haze ? `rgba(255,100,0,0)` : `rgba(255,215,0,0)`);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.fillStyle = g;
+  ctx.fill();
+}
+
+function drawCloud(ctx, cx, cy, size, alpha, dark) {
+  const base = dark ? `rgba(70,80,90,${alpha/255})` : `rgba(200,210,220,${alpha/255})`;
+  const blobs = [[0,0,1],[-.5,.2,.7],[.5,.18,.72],[-.25,-.2,.78],[.25,-.22,.65]];
+  ctx.fillStyle = base;
+  for (const [dx,dy,sc] of blobs) {
+    const r = size * sc;
+    ctx.beginPath();
+    ctx.arc(cx + dx*size, cy + dy*size, r, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawClouds(ctx, W, horizon, alpha, dark) {
+  for (const [cx,cy,sc] of clouds) {
+    drawCloud(ctx, cx*W, cy*horizon, W*0.11*sc, alpha, dark);
+  }
+}
+
+function drawRain(ctx, W, horizon, intensity) {
+  const count = Math.floor(drops.length * intensity);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(130,170,220,0.55)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < count; i++) {
+    const [rx,ry] = drops[i];
+    const x = rx*W, y = ry*(horizon*1.3);
+    if (y < horizon+30) {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x-1, y+10);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawSnow(ctx, W, horizon) {
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  for (const [fx,fy,r] of flakes) {
+    const x = fx*W, y = fy*(horizon+30);
+    if (y < horizon+10) {
+      ctx.beginPath();
+      ctx.arc(x, y, r/2, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawFog(ctx, W, horizon) {
+  for (let i = 0; i < 5; i++) {
+    const y = horizon * (0.15 + i*0.18);
+    const g = ctx.createLinearGradient(0, y, W, y+40);
+    const a = (50 + i*15)/255;
+    g.addColorStop(0,   `rgba(200,200,200,0)`);
+    g.addColorStop(0.3, `rgba(200,200,200,${a})`);
+    g.addColorStop(0.7, `rgba(200,200,200,${a})`);
+    g.addColorStop(1,   `rgba(200,200,200,0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y, W, 40);
+  }
+}
+
+function drawLightning(ctx, W, horizon) {
+  const x = W * (0.3 + Math.random()*0.4);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,150,0.9)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x, horizon*0.28);
+  ctx.lineTo(x-14, horizon*0.52);
+  ctx.lineTo(x+8,  horizon*0.52);
+  ctx.lineTo(x-10, horizon*0.80);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTrees(ctx, W, horizon, wet) {
+  const treeFill = wet ? '#1a4a1a' : '#226622';
+  const trunkFill = '#6b4a28';
+  const positions = [0.1, 0.2, 0.33, 0.60, 0.74, 0.87];
+  for (const frac of positions) {
+    const x = W * frac;
+    const ht = W * 0.07 * (0.8 + (frac*3)%0.4);
+    const tw = Math.max(4, ht/8);
+    // trunk
+    ctx.fillStyle = trunkFill;
+    ctx.fillRect(x-tw/2, horizon - ht/3, tw, ht/3);
+    // layers
+    ctx.fillStyle = treeFill;
+    const layers = [[ht, ht*0.52], [ht*0.62, ht*0.68], [ht*0.28, ht*0.82]];
+    for (let li = 0; li < layers.length; li++) {
+      const [top, half] = layers[li];
+      ctx.beginPath();
+      ctx.moveTo(x, horizon - top);
+      ctx.lineTo(x + half/2, horizon - ht*0.1*li);
+      ctx.lineTo(x - half/2, horizon - ht*0.1*li);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+function drawSnowCaps(ctx, W, horizon) {
+  const positions = [0.1, 0.2, 0.33, 0.60, 0.74, 0.87];
+  ctx.fillStyle = 'rgba(230,240,255,0.85)';
+  for (const frac of positions) {
+    const x = W * frac;
+    const ht = W * 0.07 * (0.8 + (frac*3)%0.4);
+    ctx.beginPath();
+    ctx.moveTo(x, horizon - ht);
+    ctx.lineTo(x + ht*0.27, horizon - ht*0.65);
+    ctx.lineTo(x - ht*0.27, horizon - ht*0.65);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// ─── COLOR UTILS ─────────────────────────────────────────
+function lighten(hex, pct) {
+  return adjustColor(hex, pct);
+}
+function darken(hex, pct) {
+  return adjustColor(hex, -pct);
+}
+function adjustColor(hex, pct) {
+  const n = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, Math.max(0, (n>>16) + pct));
+  const g = Math.min(255, Math.max(0, ((n>>8)&0xff) + pct));
+  const b = Math.min(255, Math.max(0, (n&0xff) + pct));
+  return `rgb(${r},${g},${b})`;
+}
+</script>
+</body>
+</html>

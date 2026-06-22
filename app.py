@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 import requests
 from typing import Dict, Any, Optional, List
@@ -525,9 +525,15 @@ def internal_error(error):
     }), 500
 
 
+@app.route("/ui")
+def ui():
+    return render_template("index.html")
+
+
 if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
         port=5000,
         debug=False
     )
+
